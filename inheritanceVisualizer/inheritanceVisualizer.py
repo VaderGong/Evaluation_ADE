@@ -1,14 +1,18 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-
-def visualize_inheritance(files):
+import os  
+import fnmatch  
+  
+def visualize_inheritance(path):
+    files=find_all_python_files(path)
+    
     # 创建一个空的有向图
     G = nx.DiGraph()
 
     # 遍历每个文件
     for file in files:
         # 读取文件内容
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
 
         # 提取类名和父类名
@@ -38,8 +42,17 @@ def visualize_inheritance(files):
     # 显示图形
     plt.show()
 
-# 指定要分析的文件列表
-files = ['Visualizer/test_class1.py', 'Visualizer/test_class2.py']
+  
+def find_all_python_files(directory):  
+    
+    python_files = []  
+  
+    for root, dirs, files in os.walk(directory):  
+        for file in fnmatch.filter(files, "*.py"):  
+            python_files.append(os.path.join(root, file))  
+    return python_files  
+if __name__ == '__main__':
+    path="C:\\Users\\LENOVO\\Desktop\\Lib\\Evaluation_ADE\\inheritanceVisualizer"
 
-# 调用函数进行可视化
-visualize_inheritance(files)
+    # 调用函数进行可视化
+    visualize_inheritance(path)
