@@ -9,13 +9,19 @@ class subject:
     self.valid: list of valid boolean
     self.pos: list of (x,y)
     self.rel_pos: list of (x,y) relative to the lane located in
+    self.heading: list of heading
     self.vel: list of (v_x,v_y)
     self.acc: list of (a_x,a_y)
     self.acc_rate: list of (da_x,da_y)
-    self.steer: list of (0: straight, 1: left, 2: right)
+    self.steer: list of (0: straight, float: steer angle)
+    self.steer_rate: list of (0: straight, float: steer rate)
     self.steer_freq: int of steer frequency 
     self.brake: list of (0: no brake, 1: brake)
     self.brake_freq: int of brake frequency 
+    self.lane_change: list of (0: no lane change, 1: lane change)
+    self.lane_change_freq: int of lane change frequency
+    seld.cross_line: list of (0: no cross line, int: cross line distance)
+    self.cross_line_freq: int of cross line frequency
     self.edges: list of edges located in
     self.lanes: list of lanes located in
     self.pos_lane: list of (x,y) relative to the lane located in
@@ -47,7 +53,7 @@ class subject:
 
     def steer(self)->int:
         '''
-        get steer state sequence and calculate steer frequency
+        get steer state sequence and calculate steer rate and steer frequency
         :return: steer frequency
         '''
         pass
@@ -58,6 +64,22 @@ class subject:
         :return: brake_fraq
         '''
         pass
+
+    def lane_change(self)->int:
+        '''
+        get lane change state sequence and calculate lane change frequency
+        :return: lane change frequency
+        '''
+        pass
+
+    def cross_line(self)->int:
+        '''
+        get cross line state sequence and calculate cross line frequency
+        :return: cross line frequency
+        '''
+        pass
+
+
 
 
         
