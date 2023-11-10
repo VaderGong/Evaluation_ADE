@@ -17,6 +17,7 @@ class subject:
     self.steer_rate: list of (0: straight, float: steer rate)
     self.steer_freq: int of steer frequency 
     self.brake: list of (0: no brake, 1: brake)
+    self.brake_distance:list of (0: no brake, int: brake distance)
     self.brake_freq: int of brake frequency 
     self.lane_change: list of (0: no lane change, 1: lane change)
     self.lane_change_freq: int of lane change frequency
@@ -26,6 +27,8 @@ class subject:
     self.lanes: list of lanes located in
     self.pos_lane: list of (x,y) relative to the lane located in
     self.mileage: float of mileage
+    self.ttc: list of time to collision
+    self.pet: list of post encroachment time
     '''
     def __init__(self):
         pass
@@ -60,7 +63,7 @@ class subject:
 
     def brake(self)->int:
         '''
-        get brake state sequence and calculate brake frequency
+        get brake state sequence and calculate brake distance and brake frequency
         :return: brake_fraq
         '''
         pass

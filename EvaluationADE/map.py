@@ -82,7 +82,7 @@ class junction:
     '''
     self.id: id string
     self.shape: list of (x,y) representing the fold line of junction outline
-    self.vehicles: list of vehicles located in
+    self.subjects: list of vehicles located in
     '''
     def __init__(self):
         pass
