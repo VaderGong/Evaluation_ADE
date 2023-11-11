@@ -1,6 +1,7 @@
 class map:
     def __init__(self):
         self.edges=[edge()]
+        self.junctions=[junction()]
         pass
 
 class lane:

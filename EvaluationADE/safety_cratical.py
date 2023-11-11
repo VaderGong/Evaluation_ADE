@@ -1,10 +1,12 @@
 from map import map, edge, lane, junction
 from enum import Enum
+from subject import subject
 class TTCtype(Enum):
     TTC = 1
     MTTC = 2
     ETTC = 3
     
+
 
 class SafetyCritical:
     def __init__(self,entity) :
@@ -14,6 +16,13 @@ class SafetyCritical:
         self.TIT=None
         self.TET=None
         self.TTCtype=None
+
+    def isConflict(self,v1:subject,v2:subject):
+        """
+        judge if v1 and v2 is conflict
+        return True if conflict
+        """
+    pass
 
     def TTC(self,type:TTCtype=1):
         """
@@ -77,4 +86,26 @@ class SafetyCritical:
     def mnpETTC(self):
         if self.TTCtype !=3:
             self.TTC(3)
+    def DRAC(self):
+        ret=[]
+        self.DRAC=ret
+        return ret
+       
+    
+    def BrakeReactionTime(self):
+        self.isConflict()
+        pass
+    
+    def ConflictIntensity(self):
+        self.isConflict()
+        pass
+    def PSD(self):
+        """
+        compute Proportion of Stopping Distance
+        """
+    def CrashPotentialIndex(self):
+        if self.DRAC==None:
+            self.DRAC()
+    
+    
     
