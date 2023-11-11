@@ -1,5 +1,6 @@
 class map:
     def __init__(self):
+        self.edges=[edge()]
         pass
 
 class lane:
@@ -47,6 +48,7 @@ class edge:
     self.lanes: list of lanes located in        
     '''
     def __init__(self):
+        self.lanes=[lane()]
         pass
 
     def speed_disrtibution(self)->tuple:
