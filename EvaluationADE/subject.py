@@ -38,6 +38,7 @@ class subject:
         calculate acceleration
         :return: list of acceleration
         '''
+        print('acceleration')
         pass
 
     def acceleration_rate(self)->list:
