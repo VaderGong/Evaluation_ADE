@@ -9,7 +9,7 @@ class TTCtype(Enum):
 
 
 class SafetyCritical:
-    def __init__(self,entity) :
+    def __init__(self,entity)  -> None:
         self.TTC=None
         self.PET=None
         self.DRAC=None
@@ -17,14 +17,14 @@ class SafetyCritical:
         self.TET=None
         self.TTCtype=None
 
-    def isConflict(self,v1:subject,v2:subject):
+    def isConflict(self,v1:subject,v2:subject) -> None:
         """
         judge if v1 and v2 is conflict
         return True if conflict
         """
     pass
 
-    def TTC(self,type:TTCtype=1):
+    def TTC(self,type:TTCtype=1):# -> list:
         """
         return list of (TTC value, time, v1 id, v2 id)
         """
@@ -35,7 +35,7 @@ class SafetyCritical:
         
         
         
-    def PET(self):
+    def PET(self):# -> list:
         """
         return list of (PET value, time, v1 id, v2 id)
         """
@@ -44,7 +44,7 @@ class SafetyCritical:
         self.PET=ret
         return ret
       
-    def TET(self,threshold):
+    def TET(self,threshold):# -> list:
         """
         """
         if self.TTC==None:
@@ -54,7 +54,7 @@ class SafetyCritical:
         ret=[]
         self.TET=ret
         return ret
-    def TIT(self,threshold):
+    def TIT(self,threshold):# -> list:
         """
         """
         if self.TTC==None:
@@ -65,10 +65,10 @@ class SafetyCritical:
         self.TIT=ret
         return ret
         
-    def TimeToIntersection(self):
+    def TimeToIntersection(self) -> None:
         pass
     
-    def CTM(self):
+    def CTM(self) -> None:
         """"""
         #judge if TTC,TIT,TET has been computed
         if self.TTC==None:
@@ -79,31 +79,31 @@ class SafetyCritical:
         
         if self.TIT==None:
             self.TIT()
-    def TTCD(self):
+    def TTCD(self) -> None:
         """"""
         pass
     
-    def mnpETTC(self):
+    def mnpETTC(self) -> None:
         if self.TTCtype !=3:
             self.TTC(3)
-    def DRAC(self):
+    def DRAC(self):# -> list:
         ret=[]
         self.DRAC=ret
         return ret
        
     
-    def BrakeReactionTime(self):
+    def BrakeReactionTime(self) -> None:
         self.isConflict()
         pass
     
-    def ConflictIntensity(self):
+    def ConflictIntensity(self) -> None:
         self.isConflict()
         pass
-    def PSD(self):
+    def PSD(self) -> None:
         """
         compute Proportion of Stopping Distance
         """
-    def CrashPotentialIndex(self):
+    def CrashPotentialIndex(self) -> None:
         if self.DRAC==None:
             self.DRAC()
     
