@@ -27,8 +27,6 @@ class subject:
     self.lanes: list of lanes located in
     self.pos_lane: list of (x,y) relative to the lane located in
     self.mileage: float of mileage
-    self.ttc: list of time to collision
-    self.pet: list of post encroachment time
     '''
     def __init__(self) -> None:
         self.id=None
@@ -125,7 +123,14 @@ class subject:
         get lane change state sequence and calculate lane change frequency
         :return: lane change frequency
         '''
-        pass
+        valid_lane=self.lanes[self.valid]
+        diff=np.diff(valid_lane,axis=0)
+        valid_lane_change=np.concatenate((np.array([0],dtype=bool),diff!=0),axis=0)
+        self.lane_change=np.zeros((len(self.lanes),2),dtype=bool)
+        self.lane_change[self.valid]=valid_lane_change
+        self.lane_change_freq=np.sum(valid_lane_change)
+        return self.lane_change_freq
+        
 
     def cross_line(self)->int:
         '''
