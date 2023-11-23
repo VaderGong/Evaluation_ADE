@@ -1,13 +1,66 @@
 import numpy as np
+import xml.dom.minidom as minidom
+import matplotlib.pyplot as plt
 class map:
     def __init__(self):
-        self.edges=[edge()]
-        self.junctions=[junction()]
-        pass
+        self.edges=[]
+        self.junctions=[]
+
+    def loadfromxml(self, xml_path):
+        DomTree = minidom.parse(xml_path)
+        collection = DomTree.documentElement
+
+        edges = collection.getElementsByTagName("edge")
+        for edge_ in edges:
+            id = str(edge_.getAttribute("id"))
+            lanes = edge_.getElementsByTagName("lane")
+            l_list=[]
+            for lane_ in lanes:
+                id = str(lane_.getAttribute("id"))
+                width = float(lane_.getAttribute("width"))
+                shape_ = lane_.getAttribute("shape")
+                shape_ = shape_.split(" ")
+                shape = [i.split(',') for i in shape_]
+                shape = [[float(i[0]),float(i[1])] for i in shape]
+                l = lane(id, width, shape, [])
+                l_list.append(l)
+            e = edge(id, l_list)
+            self.edges.append(e)
+            l_list=[]
+
+        junctions = collection.getElementsByTagName("junction")
+        for junction_ in junctions:
+            if junction_.getAttribute("type") == "internal":
+                continue
+            id = str(junction_.getAttribute("id"))
+            loc = [float(junction_.getAttribute("x")) , float(junction_.getAttribute("y"))]
+            shape_ = junction_.getAttribute("shape")
+            shape_ = shape_.split(" ")
+            shape = [i.split(',') for i in shape_]
+            shape = [[float(i[0]),float(i[1])] for i in shape]
+            j = junction(id, loc, shape, [])
+            self.junctions.append(j)
+
+    def visualize(self):
+        for edge in self.edges:
+            for lane in edge.lanes:
+                x=[point[0] for point in lane.shape]
+                y=[point[1] for point in lane.shape]
+                plt.plot(x, y, linewidth=lane.width, color='blue',alpha=0.1)
+        for junction in self.junctions:
+            x=[point[0] for point in junction.shape]
+            # x.append(x[0])
+            y=[point[1] for point in junction.shape]
+            # y.append(y[0])
+            # plt.plot([point[0] for point in junction.shape], [point[1] for point in junction.shape], 'r')
+            plt.fill(x, y, color='red',alpha=0.1)
+        
+        
 
 class lane:
     '''
     self.id: id string
+    self.index: index of lane in the edge
     self.width: width of the lane
     self.shape: list of (x,y) representing the fold line of lane center
     self.subjects: 2D ordered array of subjects located in, first dimension represents time_id , second dimension represents subjects
@@ -73,9 +126,9 @@ class edge:
     self.id: id string
     self.lanes: list of lanes located in        
     '''
-    def __init__(self):
-        self.lanes=[lane()]
-        pass
+    def __init__(self, id, lanes):
+        self.id = id
+        self.lanes = lanes
 
     def speed_disrtibution(self)->tuple:
         '''
@@ -127,8 +180,21 @@ class edge:
 class junction:
     '''
     self.id: id string
+    self.loc: (x,y) representing the center of junction
     self.shape: list of (x,y) representing the fold line of junction outline
     self.subjects: list of vehicles located in
     '''
-    def __init__(self):
-        pass
+    def __init__(self, id, loc, shape, subjects):
+        self.id = id
+        self.shape = shape
+        self.loc = loc
+        self.subjects = subjects
+        
+def main():
+    m = map()
+    m.loadfromxml("testData/Town04.net.xml")
+    m.visualize()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
