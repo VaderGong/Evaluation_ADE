@@ -45,7 +45,7 @@ class subject:
         self.edges=edges
         self.lanes=lanes
         self.vel=vel
-        self.lanePos=lanePos
+        self.pos_lane=lanePos
         self.sample_time=sample_time
     def velocity(self):
         '''
@@ -101,9 +101,13 @@ class subject:
         :return: array of steer rate
         '''
         valid_heading=self.heading[self.valid]
-        valid_steer_rate=(valid_heading[1:]-valid_heading[:-1])/self.sample_time
-        valid_steer_rate=np.concatenate((np.zeros((1,2)),valid_steer_rate),axis=0)
-        self.steer_rate=np.zeros((len(self.heading),2))
+        heading_diff=valid_heading[1:]-valid_heading[:-1]
+        heading_diff[heading_diff<-180]+=360
+        heading_diff[heading_diff>180]-=360
+        valid_steer_rate=heading_diff/self.sample_time
+        
+        valid_steer_rate=np.concatenate((np.zeros(1),valid_steer_rate),axis=0)
+        self.steer_rate=np.zeros(len(self.heading))
         self.steer_rate[self.valid]=valid_steer_rate
         return self.steer_rate
         
@@ -161,7 +165,11 @@ class subject:
         :return: cross line frequency
         '''
         pass
-
+    def checkValid(self):
+        diff=np.diff(self.valid,axis=0)
+        abs_diff=np.abs(diff)
+        if np.sum(abs_diff)>2:
+            print(self.id)
 class subjects:
     def __init__(self,sample_time=0.1) -> None:
         self.subjects={}
@@ -219,25 +227,75 @@ class subjects:
         counts,bin_edges=np.histogram(speed,bins=bins)
         counts[0]-=1
         return counts,bin_edges
-    def acceleration(self,bins=1000):
+    def accMagnitude(self,bins=1000):
         """
-        calculate acceleration distribution
-        :return: acceleration distribution
+        calculate acceleration magnitude distribution
+        :return: acceleration magnitude distribution
         """
         acc=np.zeros(1)
         for id in self.subjects:
+            self.subjects[id].acceleration()
             valid_acc=self.subjects[id].acc[self.subjects[id].valid]
             subjectAcc=np.linalg.norm(valid_acc,axis=1).flatten()
             acc=np.concatenate((acc,subjectAcc))
         counts,bin_edges=np.histogram(acc,bins=bins)
         counts[0]-=1
         return counts,bin_edges
+    def accRateMagnitude(self,bins=1000):
+        """
+        calculate acceleration rate magnitude distribution
+        :return: acceleration rate magnitude distribution
+        """
+        accRate=np.zeros(1)
+        for id in self.subjects:
+            self.subjects[id].acceleration_rate()
+            valid_accRate=self.subjects[id].acc_rate[self.subjects[id].valid]
+            subjectAccRate=np.linalg.norm(valid_accRate,axis=1).flatten()
+            accRate=np.concatenate((accRate,subjectAccRate))
+        counts,bin_edges=np.histogram(accRate,bins=bins)
+        counts[0]-=1
+        return counts,bin_edges
+    def steerRateMagnitude(self,bins=1000):
+        """
+        calculate steer rate magnitude distribution
+        :return: steer rate magnitude distribution
+        """
+        steerRate=np.zeros(1)
+        for id in self.subjects:
+            self.subjects[id].steer_rate()
+            subjectSteerRate=self.subjects[id].steer_rate[self.subjects[id].valid].flatten()
+            steerRate=np.concatenate((steerRate,subjectSteerRate))
+        counts,bin_edges=np.histogram(steerRate,bins=bins)
+        return counts,bin_edges
+    def brakeFrequency(self):
+        """
+        calculate brake frequency
+        :return: brake frequency
+        """
+        brakeFreq=0
+        for id in self.subjects:
+            brakeFreq+=self.subjects[id].brake()
+        return brakeFreq
+    def laneChangeFrequency(self):
+        """
+        calculate lane change frequency
+        :return: lane change frequency
+        """
+        laneChangeFreq=0
+        for id in self.subjects:
+            laneChangeFreq+=self.subjects[id].lane_change()
+        return laneChangeFreq
+    def checkValid(self):
+        for id in self.subjects:
+            self.subjects[id].checkValid()
 
 if __name__ == '__main__':
     s=subjects(sample_time=1)
     s.initFromCSV('testData/test.csv')
-    counts,bin_edges=s.speed(100)
-    counts=counts/np.sum(counts)
+    counts,bin_edges=s.accMagnitude(bins=1000)
+    counts=np.log(counts+1)
     plt.bar(bin_edges[:-1],counts,width=1)
     plt.xlim(min(bin_edges),max(bin_edges))
+    plt.xlabel('Steer Rate Magnitude')
+    plt.ylabel('Log(Count)')
     plt.show()
