@@ -151,9 +151,8 @@ class subject:
         :return: lane change frequency
         '''
         valid_lane=self.lanes[self.valid]
-        diff=np.diff(valid_lane,axis=0)
-        valid_lane_change=np.concatenate((np.array([0],dtype=bool),diff!=0),axis=0)
-        self.lane_change=np.zeros((len(self.lanes),2),dtype=bool)
+        valid_lane_change=np.concatenate((np.array([0],dtype=bool),valid_lane[1:]!=valid_lane[:-1]),axis=0)
+        self.lane_change=np.zeros(len(self.lanes),dtype=bool)
         self.lane_change[self.valid]=valid_lane_change
         self.lane_change_freq=np.sum(valid_lane_change)
         return self.lane_change_freq
@@ -255,10 +254,10 @@ class subjects:
         counts,bin_edges=np.histogram(accRate,bins=bins)
         counts[0]-=1
         return counts,bin_edges
-    def steerRateMagnitude(self,bins=1000):
+    def steerRate(self,bins=1000):
         """
-        calculate steer rate magnitude distribution
-        :return: steer rate magnitude distribution
+        calculate steer rate distribution
+        :return: steer rate distribution
         """
         steerRate=np.zeros(1)
         for id in self.subjects:
@@ -292,10 +291,11 @@ class subjects:
 if __name__ == '__main__':
     s=subjects(sample_time=1)
     s.initFromCSV('testData/test.csv')
-    counts,bin_edges=s.accMagnitude(bins=1000)
+    counts,bin_edges=s.steerRate(bins=1000)
     counts=np.log(counts+1)
+    print(f"lane change frequency:{s.laneChangeFrequency()}")
     plt.bar(bin_edges[:-1],counts,width=1)
     plt.xlim(min(bin_edges),max(bin_edges))
-    plt.xlabel('Steer Rate Magnitude')
+    plt.xlabel('Steer Rate')
     plt.ylabel('Log(Count)')
     plt.show()
