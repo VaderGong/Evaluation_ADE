@@ -1,4 +1,6 @@
 import numpy as np
+import csv
+import matplotlib.pyplot as plt
 class subject:
     '''
     vehicle, pedestrian, cyclist, etc.
@@ -8,7 +10,6 @@ class subject:
     self.width: width of the subject
     self.valid: array of valid boolean
     self.pos: array of (x,y)
-    self.rel_pos: list of (x,y) relative to the lane located in
     self.heading: list of heading
     self.vel: list of (v_x,v_y)
     self.acc: list of (a_x,a_y)
@@ -25,16 +26,38 @@ class subject:
     self.cross_line_freq: int of cross line frequency
     self.edges: list of edges located in
     self.lanes: list of lanes located in
-    self.pos_lane: list of (x,y) relative to the lane located in
+    self.lanePos: list of (x,y) relative to the lane located in
     self.mileage: float of mileage
     '''
-    def __init__(self) -> None:
-        self.id=None
-        self.pos=np.array([[0,0],[1,0],[1,1],[2,1]])
-        self.vel=np.array([[0,0],[10,0],[0,10],[10,0]])
-        self.valid=np.array([False,True,True,True])
-        self.sample_time=0.1
-
+    def __init__(self,id,type=None,length=None,width=None,valid=None,pos=None,heading=None,edges=None,lanes=None,vel=None,lanePos=None,sample_time=0.1) -> None:
+        # self.id=None
+        # self.pos=np.array([[0,0],[1,0],[1,1],[2,1]])
+        # self.vel=np.array([[0,0],[10,0],[0,10],[10,0]])
+        # self.valid=np.array([False,True,True,True])
+        # self.sample_time=0.1
+        self.id=id
+        self.type=type
+        self.length=length
+        self.width=width
+        self.valid=valid
+        self.pos=pos
+        self.heading=heading
+        self.edges=edges
+        self.lanes=lanes
+        self.vel=vel
+        self.lanePos=lanePos
+        self.sample_time=sample_time
+    def velocity(self):
+        '''
+        calculate velocity
+        :return: list of velocity
+        '''
+        valid_pos=self.pos[self.valid]
+        valid_vel=(valid_pos[1:]-valid_pos[:-1])/self.sample_time
+        valid_vel=np.concatenate((np.zeros((1,2)),valid_vel),axis=0)
+        self.vel=np.zeros((len(self.pos),2))
+        self.vel[self.valid]=valid_vel
+        return self.vel
     def acceleration(self):
         '''
         calculate acceleration
@@ -139,9 +162,82 @@ class subject:
         '''
         pass
 
-
-
+class subjects:
+    def __init__(self,sample_time=0.1) -> None:
+        self.subjects={}
+        self.beginFrame=0
+        self.subjectNum=0
+        self.frameNum=0
+        self.sample_time=sample_time
+    def initFromCSV(self,csvFile):
+        with open(csvFile) as f:
+            reader=csv.DictReader(f)
+            #preprocess
+            idSet=set()
+            frameSet=set()
+            rowList=[]
+            for row in reader:
+                idSet.add(row['id'])
+                frameSet.add(int(row['frame']))
+                rowList.append(row)
+            self.beginFrame=min(frameSet)
+            self.frameNum=len(frameSet)
+            self.subjectNum=len(idSet)
+            for id in idSet:
+                self.subjects[id]=subject(id=id,sample_time=self.sample_time)
+                self.subjects[id].pos=np.zeros((len(frameSet),2))
+                self.subjects[id].valid=np.zeros(len(frameSet),dtype=bool)
+                self.subjects[id].heading=np.zeros(len(frameSet))
+                self.subjects[id].lanePos=np.zeros((len(frameSet),2))
+                self.subjects[id].edges=np.empty(len(frameSet),dtype=np.str_)
+                self.subjects[id].lanes=np.empty(len(frameSet),dtype=np.str_)
+        for row in rowList:
+            if self.subjects[row['id']].length is None:
+                self.subjects[row['id']].length=row['Length']
+            if self.subjects[row['id']].width is None:
+                self.subjects[row['id']].width=row['Width']
+            frame=int(row['frame'])-self.beginFrame
+            self.subjects[row['id']].pos[frame]=np.array([float(row['Pos'].strip('()').split(',')[0]),float(row['Pos'].strip('()').split(',')[1])])
+            self.subjects[row['id']].valid[frame]=True
+            self.subjects[row['id']].heading[frame]=float(row['Angle'])
+            self.subjects[row['id']].lanePos[frame]=np.array([float(row['LanePos']),float(row['LateralLanePos'])])
+            self.subjects[row['id']].edges[frame]=row['Edge']
+            self.subjects[row['id']].lanes[frame]=row['Lane']
+        for id in self.subjects:
+            self.subjects[id].velocity()
+            
+    def speed(self,bins=1000):
+        """
+        calculate speed distribution
+        :return: speed distribution
+        """
+        speed=np.zeros(1)
+        for id in self.subjects:
+            valid_vel=self.subjects[id].vel[self.subjects[id].valid]
+            subjectSpeed=np.linalg.norm(valid_vel,axis=1).flatten()
+            speed=np.concatenate((speed,subjectSpeed))
+        counts,bin_edges=np.histogram(speed,bins=bins)
+        counts[0]-=1
+        return counts,bin_edges
+    def acceleration(self,bins=1000):
+        """
+        calculate acceleration distribution
+        :return: acceleration distribution
+        """
+        acc=np.zeros(1)
+        for id in self.subjects:
+            valid_acc=self.subjects[id].acc[self.subjects[id].valid]
+            subjectAcc=np.linalg.norm(valid_acc,axis=1).flatten()
+            acc=np.concatenate((acc,subjectAcc))
+        counts,bin_edges=np.histogram(acc,bins=bins)
+        counts[0]-=1
+        return counts,bin_edges
 
 if __name__ == '__main__':
-    veh=subject()
-    veh.acceleration()
+    s=subjects(sample_time=1)
+    s.initFromCSV('testData/test.csv')
+    counts,bin_edges=s.speed(100)
+    counts=counts/np.sum(counts)
+    plt.bar(bin_edges[:-1],counts,width=1)
+    plt.xlim(min(bin_edges),max(bin_edges))
+    plt.show()
