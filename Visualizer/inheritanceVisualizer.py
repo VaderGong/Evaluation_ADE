@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os  
 import fnmatch  
   
-def visualize_inheritance(path):
+def visualize_inheritance(path) -> None:
     files=find_all_python_files(path)
     
     # 创建一个空的有向图
