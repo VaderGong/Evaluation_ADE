@@ -67,7 +67,6 @@ class subject:
         valid_acc=(valid_vel[1:]-valid_vel[:-1])/self.sample_time
         valid_acc=np.concatenate((np.zeros((1,2)),valid_acc),axis=0)
         self.acc=np.zeros((len(self.vel),2))
-        
         self.acc[self.valid]=valid_acc
         return self.acc
         
@@ -183,6 +182,15 @@ class subjects:
             idSet=set()
             frameSet=set()
             rowList=[]
+            
+            #check if the csv file contains velocity and acceleration
+            self.hasVelocity=False
+            if 'xVelocity' in reader.fieldnames and 'yVelocity' in reader.fieldnames:
+                self.hasVelocity=True
+            self.hasAcceleration=False
+            if 'xAcceleration' in reader.fieldnames and 'yAcceleration' in reader.fieldnames:
+                self.hasAcceleration=True
+            
             for row in reader:
                 idSet.add(row['id'])
                 frameSet.add(int(row['frame']))
@@ -198,6 +206,10 @@ class subjects:
                 self.subjects[id].lanePos=np.zeros((len(frameSet),2))
                 self.subjects[id].edges=np.empty(len(frameSet),dtype=np.str_)
                 self.subjects[id].lanes=np.empty(len(frameSet),dtype=np.str_)
+                if self.hasVelocity:
+                    self.subjects[id].vel=np.zeros((len(frameSet),2))
+                if self.hasAcceleration:
+                    self.subjects[id].acc=np.zeros((len(frameSet),2))
         for row in rowList:
             if self.subjects[row['id']].length is None:
                 self.subjects[row['id']].length=row['Length']
@@ -210,8 +222,13 @@ class subjects:
             self.subjects[row['id']].lanePos[frame]=np.array([float(row['LanePos']),float(row['LateralLanePos'])])
             self.subjects[row['id']].edges[frame]=row['Edge']
             self.subjects[row['id']].lanes[frame]=row['Lane']
-        for id in self.subjects:
-            self.subjects[id].velocity()
+            if self.hasVelocity:
+                self.subjects[row['id']].vel[frame]=np.array([float(row['xVelocity']),float(row['yVelocity'])])
+            if self.hasAcceleration:
+                self.subjects[row['id']].acc[frame]=np.array([float(row['xAcceleration']),float(row['yAcceleration'])])
+        if not self.hasVelocity:
+            for id in self.subjects:
+                self.subjects[id].velocity()
             
     def speed(self,bins=1000):
         """
@@ -275,27 +292,37 @@ class subjects:
         for id in self.subjects:
             brakeFreq+=self.subjects[id].brake()
         return brakeFreq
-    def laneChangeFrequency(self):
+    def laneChange(self):
         """
         calculate lane change frequency
         :return: lane change frequency
         """
+        laneChangePos=np.zeros((1,2))
         laneChangeFreq=0
         for id in self.subjects:
             laneChangeFreq+=self.subjects[id].lane_change()
-        return laneChangeFreq
+            laneChangePos=np.concatenate((laneChangePos,self.subjects[id].pos[self.subjects[id].lane_change]),axis=0)
+        laneChangePos=laneChangePos[1:]
+        return laneChangeFreq,laneChangePos
     def checkValid(self):
         for id in self.subjects:
             self.subjects[id].checkValid()
 
 if __name__ == '__main__':
     s=subjects(sample_time=1)
-    s.initFromCSV('testData/test.csv')
-    counts,bin_edges=s.steerRate(bins=1000)
+    Path='testData/test.csv'
+    s.initFromCSV(Path)
+    s.checkValid()
+    counts,bin_edges=s.speed(bins=1000)
     counts=np.log(counts+1)
-    print(f"lane change frequency:{s.laneChangeFrequency()}")
+    laneChangeFreq,laneChangePos=s.laneChange()   
+    x=laneChangePos[:,0]
+    y=laneChangePos[:,1]
+    plt.plot(x,y,'.')
+    plt.show()
     plt.bar(bin_edges[:-1],counts,width=1)
     plt.xlim(min(bin_edges),max(bin_edges))
-    plt.xlabel('Steer Rate')
+    plt.xlabel('Speed')
     plt.ylabel('Log(Count)')
     plt.show()
+    
