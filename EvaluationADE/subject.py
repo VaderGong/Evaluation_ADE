@@ -1,6 +1,7 @@
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
+from map import map
 class subject:
     '''
     vehicle, pedestrian, cyclist, etc.
@@ -118,29 +119,40 @@ class subject:
         valid_steer=self.steer[self.valid]
         
 
-    def brake(self,threshold=2):
+    def brake(self,threshold=4):
         '''
         get brake state sequence and calculate brake distance and brake frequency
-        :return: brake_fraq
+        :return: brake_freq
         '''
         valid_acc=self.acc[self.valid]
         valid_vel=self.vel[self.valid]
         isBraking=np.sum(np.multiply(valid_acc,valid_vel),axis=1)<0.0
         isBraking=isBraking*(np.linalg.norm(valid_acc,axis=1)>threshold)
-        self.brake=np.zeros((len(self.vel),2),dtype=bool)
+        self.brake=np.zeros((len(self.vel)),dtype=bool)
         self.brake[self.valid]=isBraking
         self.brake_freq=np.sum(np.diff(self.brake,axis=0)==1)
         #compute brake distance
-        brakeBegin=np.where(np.diff(self.brake,axis=0)==-1)
-        brakeEnd=np.where(np.diff(self.brake,axis=0)==1)
-        brake_pos=np.where(self.brake,self.pos,0.0)
-        diff=np.diff(brake_pos,axis=0)
+        brakeBegin=np.where(np.diff(self.brake.astype(int),axis=0)==1)[0]
+        brakeEnd=np.where(np.diff(self.brake.astype(int),axis=0)==-1)[0]
+        brake_pos=self.pos[self.brake]
+        diff=np.diff(self.pos,axis=0)
         dist=np.linalg.norm(diff,axis=1)
         inted_dist=np.cumsum(dist)
+        if len(brakeBegin)!=len(brakeEnd):
+            brakeEnd=np.append(brakeEnd,-1)
         for i in range(len(brakeBegin)):
-            inted_dist[brakeBegin[i]:brakeEnd[i]]-=inted_dist[brakeBegin[i]]
-        self.brake_distance=np.zeros((len(self.vel),2))
-        self.brake_distance[self.brake]=inted_dist
+            try:
+                inted_dist[brakeBegin[i]:brakeEnd[i]]-=inted_dist[brakeBegin[i]]
+            except:
+                print(self.id)
+                print(i)
+                print(brakeBegin)
+                print(brakeEnd)
+                print(inted_dist.shape)
+        self.brake_distance=np.zeros(len(self.vel))
+        inted_dist=np.concatenate((np.array([0]),inted_dist),axis=0)
+        self.brake_distance[self.brake]=inted_dist[self.brake]
+        
         return self.brake_freq
         
 
@@ -283,19 +295,24 @@ class subjects:
             steerRate=np.concatenate((steerRate,subjectSteerRate))
         counts,bin_edges=np.histogram(steerRate,bins=bins)
         return counts,bin_edges
-    def brakeFrequency(self):
+    def brake(self,threshold=4):
         """
-        calculate brake frequency
-        :return: brake frequency
+        calculate brake frequency and brake distance
+        :return: brake frequency and brake distance
         """
         brakeFreq=0
+        brakeDist=np.zeros(1)
         for id in self.subjects:
-            brakeFreq+=self.subjects[id].brake()
-        return brakeFreq
+            brakeFreq+=self.subjects[id].brake(threshold)
+            diffDist=np.diff(self.subjects[id].brake_distance,axis=0)
+            finalDist=diffDist[diffDist<0]
+            finalDist=-finalDist
+            brakeDist=np.concatenate((brakeDist,finalDist))
+        return brakeFreq, brakeDist[1:]
     def laneChange(self):
         """
-        calculate lane change frequency
-        :return: lane change frequency
+        calculate lane change frequency and lane change position
+        :return: lane change frequency and lane change position
         """
         laneChangePos=np.zeros((1,2))
         laneChangeFreq=0
@@ -311,18 +328,26 @@ class subjects:
 if __name__ == '__main__':
     s=subjects(sample_time=1)
     Path='testData/test.csv'
+    # Path="C:\\Users\\LENOVO\\Desktop\\Lib\\Data&Scripts\\processed_tracks.csv"
     s.initFromCSV(Path)
     s.checkValid()
-    counts,bin_edges=s.speed(bins=1000)
-    counts=np.log(counts+1)
-    laneChangeFreq,laneChangePos=s.laneChange()   
-    x=laneChangePos[:,0]
-    y=laneChangePos[:,1]
-    plt.plot(x,y,'.')
+    # m = map()
+    # m.loadfromxml("testData/Town04.net.xml")
+    # m.visualize()
+    counts,bin_edges=s.accMagnitude(bins=1000)
+    # counts=np.log(counts+1)
+    # laneChangeFreq,laneChangePos=s.laneChange()   
+    # x=laneChangePos[:,0]
+    # y=laneChangePos[:,1]
+    # plt.plot(x,y,'.',color='red')
+    # plt.show()
+    # plt.bar(bin_edges[:-1],counts,width=1)
+    # plt.xlim(min(bin_edges),max(bin_edges))
+    # plt.xlabel('Acceleration Magnitude')
+    # plt.ylabel('Log(Count)')
+    # plt.show()
+    brakeFreq,brakeDist=s.brake(2)
+    plt.hist(brakeDist,bins=1000)
+    plt.xlabel('Brake Distance')
+    plt.ylabel('Count')
     plt.show()
-    plt.bar(bin_edges[:-1],counts,width=1)
-    plt.xlim(min(bin_edges),max(bin_edges))
-    plt.xlabel('Speed')
-    plt.ylabel('Log(Count)')
-    plt.show()
-    
