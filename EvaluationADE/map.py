@@ -3,8 +3,8 @@ import xml.dom.minidom as minidom
 import matplotlib.pyplot as plt
 class map:
     def __init__(self):
-        self.edges=[]
-        self.junctions=[]
+        self.edges = {}
+        self.junctions = {}
 
     def loadfromxml(self, xml_path):
         DomTree = minidom.parse(xml_path)
@@ -25,7 +25,7 @@ class map:
                 l = lane(id, width, shape, [])
                 l_list.append(l)
             e = edge(id, l_list)
-            self.edges.append(e)
+            self.edges[id] = e
             l_list=[]
 
         junctions = collection.getElementsByTagName("junction")
@@ -39,22 +39,18 @@ class map:
             shape = [i.split(',') for i in shape_]
             shape = [[float(i[0]),float(i[1])] for i in shape]
             j = junction(id, loc, shape, [])
-            self.junctions.append(j)
+            self.junctions[id] = j
 
     def visualize(self):
-        for edge in self.edges:
+        for edge in self.edges.values():
             for lane in edge.lanes:
                 x=[point[0] for point in lane.shape]
                 y=[point[1] for point in lane.shape]
                 plt.plot(x, y, linewidth=lane.width, color='blue',alpha=0.1)
-        for junction in self.junctions:
+        for junction in self.junctions.values():
             x=[point[0] for point in junction.shape]
-            # x.append(x[0])
             y=[point[1] for point in junction.shape]
-            # y.append(y[0])
-            # plt.plot([point[0] for point in junction.shape], [point[1] for point in junction.shape], 'r')
             plt.fill(x, y, color='red',alpha=0.1)
-        
         
 
 class lane:
