@@ -2,6 +2,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 from map import map
+from n_circle_appro import *
 class subject:
     '''
     vehicle, pedestrian, cyclist, etc.
@@ -48,6 +49,7 @@ class subject:
         self.vel=vel
         self.pos_lane=lanePos
         self.sample_time=sample_time
+        self.n_circle=n_circle(self.width,self.length)
     def velocity(self):
         '''
         calculate velocity
@@ -252,7 +254,14 @@ class subjects:
             valid_vel=self.subjects[id].vel[self.subjects[id].valid]
             subjectSpeed=np.linalg.norm(valid_vel,axis=1).flatten()
             speed=np.concatenate((speed,subjectSpeed))
+        plt.hist(speed,bins=1000,log=True,width=(max(speed)-min(speed))/1000)
+        plt.xlim(0,max(speed))
+        plt.xlabel('Speed')
+        plt.ylabel('Count')
+        plt.show()
+        
         counts,bin_edges=np.histogram(speed,bins=bins)
+        
         counts[0]-=1
         return counts,bin_edges
     def accMagnitude(self,bins=1000):
@@ -262,10 +271,16 @@ class subjects:
         """
         acc=np.zeros(1)
         for id in self.subjects:
-            self.subjects[id].acceleration()
+            if not self.hasAcceleration:
+                self.subjects[id].acceleration()
             valid_acc=self.subjects[id].acc[self.subjects[id].valid]
             subjectAcc=np.linalg.norm(valid_acc,axis=1).flatten()
             acc=np.concatenate((acc,subjectAcc))
+        plt.hist(acc,bins=1000,log=True,width=(max(acc)-min(acc))/1000)
+        plt.xlim(0,max(acc))
+        plt.xlabel('Acceleration Magnitude')
+        plt.ylabel('Count')
+        plt.show()
         counts,bin_edges=np.histogram(acc,bins=bins)
         counts[0]-=1
         return counts,bin_edges
@@ -328,26 +343,28 @@ class subjects:
 if __name__ == '__main__':
     s=subjects(sample_time=1)
     Path='testData/test.csv'
-    # Path="C:\\Users\\LENOVO\\Desktop\\Lib\\Data&Scripts\\processed_tracks.csv"
+    Path="C:\\Users\\LENOVO\\Desktop\\Lib\\Data&Scripts\\processed_tracks.csv"
     s.initFromCSV(Path)
     s.checkValid()
     # m = map()
     # m.loadfromxml("testData/Town04.net.xml")
     # m.visualize()
+    s.speed()
     counts,bin_edges=s.accMagnitude(bins=1000)
-    # counts=np.log(counts+1)
+    counts=np.log(counts+1)
+    print(counts.shape)
     # laneChangeFreq,laneChangePos=s.laneChange()   
     # x=laneChangePos[:,0]
     # y=laneChangePos[:,1]
     # plt.plot(x,y,'.',color='red')
     # plt.show()
-    # plt.bar(bin_edges[:-1],counts,width=1)
+    # plt.bar(bin_edges[:-1],counts)
     # plt.xlim(min(bin_edges),max(bin_edges))
     # plt.xlabel('Acceleration Magnitude')
     # plt.ylabel('Log(Count)')
     # plt.show()
-    brakeFreq,brakeDist=s.brake(2)
-    plt.hist(brakeDist,bins=1000)
-    plt.xlabel('Brake Distance')
-    plt.ylabel('Count')
-    plt.show()
+    # brakeFreq,brakeDist=s.brake(2)
+    # plt.hist(brakeDist,bins=1000)
+    # plt.xlabel('Brake Distance')
+    # plt.ylabel('Count')
+    # plt.show()
