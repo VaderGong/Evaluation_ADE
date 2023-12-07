@@ -63,6 +63,12 @@ class lane:
     self.vehicles: 2D ordered array of vehicles located in, first dimension represents time_id , second dimension represents vehicles
     '''
     def __init__(self, id, width, shape, subjects):
+        '''
+        :param id: id string
+        :param width: width of the lane
+        :param shape: list of (x,y) representing the fold line of lane center
+        :param subjects: 2D ordered array of subjects located in, first dimension represents time_id , second dimension represents subjects
+        '''
         self.id = id
         self.width = width
         self.shape = shape

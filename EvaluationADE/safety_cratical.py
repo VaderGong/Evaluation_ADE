@@ -1,12 +1,11 @@
 from map import map, edge, lane, junction
 from enum import Enum
 from subject import subject
+
 class TTCtype(Enum):
     TTC = 1
     MTTC = 2
     ETTC = 3
-    
-
 
 class SafetyCritical:
     def __init__(self,entity)  -> None:
@@ -24,10 +23,17 @@ class SafetyCritical:
         """
     pass
 
-    def TTC(self,type:TTCtype=1):# -> list:
-        """
-        return list of (TTC value, time, v1 id, v2 id)
-        """
+    def TTC(self, v_target:float, v_follow:float, a_target:float=None, a_follow:float=None, type:str='TTC'):
+        '''
+        :param v_target:   
+        :param v_follow:      
+        '''
+
+        #TTC
+        
+        #MTTC
+
+        #ETTC
         self.TTCtype=TTCtype
         ret=[]
         self.TTC=ret
