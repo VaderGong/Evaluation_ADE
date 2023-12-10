@@ -49,7 +49,7 @@ class subject:
         self.vel=vel
         self.pos_lane=lanePos
         self.sample_time=sample_time
-        self.n_circle=n_circle(self.width,self.length)
+        self.n_circle=n_circle(pos=pos,pos_lane=lanePos,width=self.width,length=self.length)
     def velocity(self):
         '''
         calculate velocity
@@ -120,15 +120,15 @@ class subject:
         '''
         valid_steer=self.steer[self.valid]
         
-
-    def brake(self,threshold=4):
+## might have some problem
+    def brake(self,threshold=2):
         '''
         get brake state sequence and calculate brake distance and brake frequency
         :return: brake_freq
         '''
         valid_acc=self.acc[self.valid]
         valid_vel=self.vel[self.valid]
-        isBraking=np.sum(np.multiply(valid_acc,valid_vel),axis=1)<0.0
+        isBraking=(np.sum(np.multiply(valid_acc,valid_vel),axis=1))<0.0
         isBraking=isBraking*(np.linalg.norm(valid_acc,axis=1)>threshold)
         self.brake=np.zeros((len(self.vel)),dtype=bool)
         self.brake[self.valid]=isBraking
@@ -136,25 +136,19 @@ class subject:
         #compute brake distance
         brakeBegin=np.where(np.diff(self.brake.astype(int),axis=0)==1)[0]
         brakeEnd=np.where(np.diff(self.brake.astype(int),axis=0)==-1)[0]
-        brake_pos=self.pos[self.brake]
         diff=np.diff(self.pos,axis=0)
         dist=np.linalg.norm(diff,axis=1)
         inted_dist=np.cumsum(dist)
         if len(brakeBegin)!=len(brakeEnd):
-            brakeEnd=np.append(brakeEnd,-1)
+            brakeEnd=np.append(brakeEnd,len(self.brake))
         for i in range(len(brakeBegin)):
-            try:
-                inted_dist[brakeBegin[i]:brakeEnd[i]]-=inted_dist[brakeBegin[i]]
-            except:
-                print(self.id)
-                print(i)
-                print(brakeBegin)
-                print(brakeEnd)
-                print(inted_dist.shape)
+            
+            inted_dist[brakeBegin[i]:brakeEnd[i]]-=inted_dist[brakeBegin[i]]
+            
         self.brake_distance=np.zeros(len(self.vel))
         inted_dist=np.concatenate((np.array([0]),inted_dist),axis=0)
         self.brake_distance[self.brake]=inted_dist[self.brake]
-        
+        # print(self.brake)
         return self.brake_freq
         
 
@@ -310,7 +304,7 @@ class subjects:
             steerRate=np.concatenate((steerRate,subjectSteerRate))
         counts,bin_edges=np.histogram(steerRate,bins=bins)
         return counts,bin_edges
-    def brake(self,threshold=4):
+    def brake(self,threshold=2):
         """
         calculate brake frequency and brake distance
         :return: brake frequency and brake distance
@@ -349,10 +343,11 @@ if __name__ == '__main__':
     # m = map()
     # m.loadfromxml("testData/Town04.net.xml")
     # m.visualize()
-    s.speed()
-    counts,bin_edges=s.accMagnitude(bins=1000)
-    counts=np.log(counts+1)
-    print(counts.shape)
+    # s.speed()
+    s.brake()
+    # counts,bin_edges=s.accMagnitude(bins=1000)
+    # counts=np.log(counts+1)
+    # print(counts.shape)
     # laneChangeFreq,laneChangePos=s.laneChange()   
     # x=laneChangePos[:,0]
     # y=laneChangePos[:,1]
