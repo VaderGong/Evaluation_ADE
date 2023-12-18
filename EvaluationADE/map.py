@@ -1,6 +1,10 @@
 import numpy as np
 import xml.dom.minidom as minidom
 import matplotlib.pyplot as plt
+from subject import subjects
+from tqdm import tqdm
+from matplotlib.transforms import ScaledTranslation
+#map--------------------------------------------------------------------------------------------
 class map:
     def __init__(self):
         self.edges = {}
@@ -12,9 +16,9 @@ class map:
 
         edges = collection.getElementsByTagName("edge")
         for edge_ in edges:
-            id = str(edge_.getAttribute("id"))
+           
             lanes = edge_.getElementsByTagName("lane")
-            l_list=[]
+            l_dict = {}
             for lane_ in lanes:
                 id = str(lane_.getAttribute("id"))
                 width = float(lane_.getAttribute("width"))
@@ -23,10 +27,11 @@ class map:
                 shape = [i.split(',') for i in shape_]
                 shape = [[float(i[0]),float(i[1])] for i in shape]
                 l = lane(id, width, shape, [])
-                l_list.append(l)
-            e = edge(id, l_list)
+                l_dict[id] = l
+            id = str(edge_.getAttribute("id"))
+            e = edge(id, l_dict)
             self.edges[id] = e
-            l_list=[]
+            l_dict={}
 
         junctions = collection.getElementsByTagName("junction")
         for junction_ in junctions:
@@ -40,10 +45,44 @@ class map:
             shape = [[float(i[0]),float(i[1])] for i in shape]
             j = junction(id, loc, shape, [])
             self.junctions[id] = j
-
-    def visualize(self):
+    
+    def load_vehicles(self, subjects:subjects):
         for edge in self.edges.values():
-            for lane in edge.lanes:
+            for lane in edge.lanes.values():
+                lane.subjects = [[] for i in range(subjects.frameNum)]
+        for subject in tqdm(subjects.subjects.values()):
+            for i in range(subjects.frameNum):
+                if subject.valid[i]:
+                    self.edges[subject.edges[i]].lanes[subject.lanes[i]].subjects[i].append(subject)
+        #依lane上相对位置排序
+        for edge in self.edges.values():
+            for lane in edge.lanes.values():
+                for i in range(subjects.frameNum):
+                    if lane.subjects[i] != []:
+                        lane.subjects[i].sort(key=lambda x:x.lanePos[i][0])
+                     
+    def visualize_map(self, size=(400,5), show=True):
+        #get the current figure and axes
+        fig, ax = plt.subplots(figsize=size)
+        for edge in self.edges.values():
+            for lane in edge.lanes.values():
+                x=[point[0] for point in lane.shape]
+                y=[point[1] for point in lane.shape]
+                dpi_scale_trans = ScaledTranslation(0, 0, fig.dpi_scale_trans)
+                trans = ax.transData + dpi_scale_trans
+                ax.plot(x, y, linewidth=lane.width, color='blue', alpha=0.1, transform=trans)
+        for junction in self.junctions.values():
+            x=[point[0] for point in junction.shape]
+            y=[point[1] for point in junction.shape]
+            ax.fill(x, y, color='red',alpha=0.1)
+        if show:
+            plt.show()
+        
+    
+    def visualize_scene(self, subjects:subjects, t_lim, size=(400,5)):
+        plt.figure(figsize=size)
+        for edge in self.edges.values():
+            for lane in edge.lanes.values():
                 x=[point[0] for point in lane.shape]
                 y=[point[1] for point in lane.shape]
                 plt.plot(x, y, linewidth=lane.width, color='blue',alpha=0.1)
@@ -51,18 +90,34 @@ class map:
             x=[point[0] for point in junction.shape]
             y=[point[1] for point in junction.shape]
             plt.fill(x, y, color='red',alpha=0.1)
-        
+        for t_index in range(t_lim):
+            sub=[]
+            for subject in subjects.subjects.values():
+                if subject.valid[t_index]:
+                    sub_=plt.plot(subject.pos[t_index][0],subject.pos[t_index][1],'.',color='red',alpha=0.5)
+                    sub.append(sub_[0])
+            plt.draw()
+            plt.pause(0.1)
+            for sub_ in sub:
+                sub_.remove()
 
+#lane--------------------------------------------------------------------------------------------
 class lane:
     '''
-    self.id: id string
-    self.index: index of lane in the edge
-    self.width: width of the lane
-    self.shape: list of (x,y) representing the fold line of lane center
-    self.subjects: 2D ordered array of subjects located in, first dimension represents time_id , second dimension represents subjects
-    self.vehicles: 2D ordered array of vehicles located in, first dimension represents time_id , second dimension represents vehicles
+    self.id: 
+    id string
+    self.index: 
+    index of lane in the edge
+    self.width: 
+    width of the lane
+    self.shape: 
+    list of (x,y) representing the fold line of lane center
+    self.subjects: 
+    2D ordered array of subjects located in, first dimension represents time_id , second dimension represents subjects
+    self.vehicles: 
+    2D ordered array of vehicles located in, first dimension represents time_id , second dimension represents vehicles
     '''
-    def __init__(self, id, width, shape, subjects):
+    def __init__(self, id, width, shape, subjects=None):
         '''
         :param id: id string
         :param width: width of the lane
@@ -73,7 +128,6 @@ class lane:
         self.width = width
         self.shape = shape
         self.subjects = subjects
-        self.vehicles = [[subject for subject in time if subject.type== 'vehicle'] for time in self.subjects]
 
     def speed_disrtibution(self)->tuple:
         '''
@@ -82,8 +136,8 @@ class lane:
         :return: standard deviation of speed distribution
         '''
         speed_list = [np.linalg.norm(vehicle.vel[time_id]) 
-                      for time_id in range(len(self.vehicles)) 
-                      for vehicle in self.vehicles[time_id] ]
+                      for time_id in range(len(self.subjects)) 
+                      for vehicle in self.subjects[time_id] ]
 
         return speed_list,np.std(speed_list)
 
@@ -92,22 +146,22 @@ class lane:
         calculate headway
         :return: list of headway
         '''
-        headway_list = [    self.vehicles[time_id][vehicle_index+1].pos_lane[time_id][0] 
-                            - self.vehicles[time_id][vehicle_index].pos_lane[time_id][0] 
-                            for time_id in range(len(self.vehicles)) 
-                            for vehicle_index in range(len(self.vehicles[time_id])-1)   ]
+        headway_list = [    self.subjects[time_id][vehicle_index+1].pos_lane[time_id][0] 
+                            - self.subjects[time_id][vehicle_index].pos_lane[time_id][0] 
+                            for time_id in range(len(self.subjects)) 
+                            for vehicle_index in range(len(self.subjects[time_id])-1)   ]
         return headway_list
 
-    def time_haedway(self)->list:
+    def time_headway(self)->list:
         '''
         calculate time headway
         :return: list of time headway
         '''
-        time_headway_list = [   self.vehicles[time_id][vehicle_index+1].pos_lane[time_id][0] 
-                                - self.vehicles[time_id][vehicle_index].pos_lane[time_id][0]
-                                /np.linalg.norm(self.vehicles[time_id][vehicle_index].vel[time_id])
-                                for time_id in range(len(self.vehicles))
-                                for vehicle_index in range(len(self.vehicles[time_id])-1)   ]
+        time_headway_list = [   self.subjects[time_id][vehicle_index+1].pos_lane[time_id][0] 
+                                - self.subjects[time_id][vehicle_index].pos_lane[time_id][0]
+                                /np.linalg.norm(self.subjects[time_id][vehicle_index].vel[time_id])
+                                for time_id in range(len(self.subjects))
+                                for vehicle_index in range(len(self.subjects[time_id])-1)   ]
         return time_headway_list
 
     def sectional_flow_rate(self)->float:
@@ -116,57 +170,102 @@ class lane:
         :return: sectional flow rate
         '''
         num = 0
-        vehicles_now = set(self.vehicles[0])
-        for time_id in range(1,len(self.vehicles)):
-            vehicles_next = set(self.vehicles[time_id])
-            num += len(vehicles_next - vehicles_now)
-            vehicles_now = vehicles_next
-        return num/len(self.vehicles)  #此处除以帧数，实际应考虑帧时间，即return/帧时间
-
+        subjects_now = set(self.subjects[0])
+        for time_id in range(1,len(self.subjects)):
+            subjects_next = set(self.subjects[time_id])
+            num += len(subjects_next - subjects_now)
+            subjects_now = subjects_next
+        return num/len(self.subjects)  #此处除以帧数，实际应考虑帧时间，即return/帧时间
+    
+#edge--------------------------------------------------------------------------------------------
 class edge:
     '''
-    self.id: id string
-    self.lanes: list of lanes located in        
+    self.id: 
+    id string
+    self.lanes: 
+    list of lanes located in        
     '''
     def __init__(self, id, lanes):
         self.id = id
+        #lanes是一个字典
         self.lanes = lanes
 
-    def speed_disrtibution(self)->tuple:
+    def speed_disrtibution(self, draw_mode='value', save_path=None)->tuple:
         '''
         calculate speed distribution
         :return: list of speed distribution
         :return: standard deviation of speed distribution
         '''
+        #统计时间内所有车的数量，如小于2没有意义
+        
         speed_list = [np.linalg.norm(vehicle.vel[time_id])
                         for lane in self.lanes
-                        for time_id in range(len(lane.vehicles))
-                        for vehicle in lane.vehicles[time_id]]
+                        for time_id in range(len(lane.subjects))
+                        for vehicle in lane.subjects[time_id]]
+        if draw_mode == 'value':
+            plt.clf()
+            plt.hist(speed_list, bins=100)
+            plt.xlabel('speed')
+            plt.ylabel('number')
+            plt.title('speed distribution: '+self.id)
+            if save_path != None:
+                plt.savefig(save_path)
+            else:
+                plt.show()
         return speed_list,np.std(speed_list)
 
-    def headway(self)->list:
+    def headway(self, draw_mode='value', save_path = None)->list:
         '''
         calculate headway
         :return: list of headway
         '''
-        headway_list = [    lane.vehicles[time_id][vehicle_index+1].pos_lane[time_id][0] 
-                            - lane.vehicles[time_id][vehicle_index].pos_lane[time_id][0] 
-                            for lane in self.lanes
-                            for time_id in range(len(lane.vehicles)) 
-                            for vehicle_index in range(len(lane.vehicles[time_id])-1)   ]
+        #统计时间内所有车的数量，如小于2没有意义
+        num=[]
+        for lane in self.lanes.values():
+            for time_id in range(len(lane.subjects)):
+                num.append(len(lane.subjects[time_id]))
+        if max(num)<=2:
+            return None
+        headway_list = [    lane.subjects[time_id][vehicle_index+1].lanePos[time_id][0] 
+                            - lane.subjects[time_id][vehicle_index].lanePos[time_id][0] 
+                            for lane in self.lanes.values()
+                            for time_id in range(len(lane.subjects)) 
+                            for vehicle_index in range(len(lane.subjects[time_id])-1)   ]
+        if draw_mode == 'value':
+            plt.clf()
+            plt.hist(headway_list, bins=100, density=True,alpha=0.5,
+                    histtype='stepfilled', color='steelblue',
+                    edgecolor='steelblue')
+            plt.xlabel('headway')
+            plt.ylabel('number')
+            plt.title('headway distribution: '+self.id)
+            if save_path != None:
+                plt.savefig(save_path)
+            else:
+                plt.show()
         return headway_list
 
-    def time_haedway(self)->list:
+    def time_headway(self, draw_mode='value', save_path=None)->list:
         '''
         calculate time headway
         :return: list of time headway
         '''
-        time_headway_list = [   lane.vehicles[time_id][vehicle_index+1].pos_lane[time_id][0] 
-                                - lane.vehicles[time_id][vehicle_index].pos_lane[time_id][0]
-                                /np.linalg.norm(lane.vehicles[time_id][vehicle_index].vel[time_id])
+        time_headway_list = [   lane.subjects[time_id][vehicle_index+1].pos_lane[time_id][0] 
+                                - lane.subjects[time_id][vehicle_index].pos_lane[time_id][0]
+                                /np.linalg.norm(lane.subjects[time_id][vehicle_index].vel[time_id])
                                 for lane in self.lanes
-                                for time_id in range(len(lane.vehicles))
-                                for vehicle_index in range(len(lane.vehicles[time_id])-1)   ]
+                                for time_id in range(len(lane.subjects))
+                                for vehicle_index in range(len(lane.subjects[time_id])-1)   ]
+        if draw_mode == 'value':
+            plt.clf()
+            plt.hist(time_headway_list, bins=100)
+            plt.xlabel('time headway')
+            plt.ylabel('number')
+            plt.title('time headway distribution: '+self.id)
+            if save_path != None:
+                plt.savefig(save_path)
+            else:
+                plt.show()
         return time_headway_list
 
     def sectional_flow_rate(self)->float:
@@ -178,25 +277,54 @@ class edge:
         for lane in self.lanes:
             flow_rate += lane.sectional_flow_rate()
         return flow_rate
+    
+    def viusalize(self, t_lim):
+        plt.clf()
+        for lane in self.lanes.values():
+            print(lane.width)
+            x=[point[0] for point in lane.shape]
+            y=[point[1] for point in lane.shape]
 
+            plt.plot(x, y, linewidth=lane.width, color='blue',alpha=0.1)
+
+        for t_index in range(t_lim):
+            sub=[]
+            for lane in self.lanes.values():
+                for subject in lane.subjects[t_index]:
+                    sub_=plt.plot(subject.pos[t_index][0],subject.pos[t_index][1],'.',color='red',alpha=0.5)
+                    sub.append(sub_[0])
+                if lane.subjects[t_index] != []:
+                    sub_=plt.plot(lane.subjects[t_index][0].pos[t_index][0],lane.subjects[t_index][0].pos[t_index][1],'.',color='k',alpha=1)
+                    sub.append(sub_[0])
+            plt.draw()
+            plt.pause(0.1)
+            for sub_ in sub:
+                sub_.remove()
+#junction--------------------------------------------------------------------------------------------
 class junction:
     '''
-    self.id: id string
-    self.loc: (x,y) representing the center of junction
-    self.shape: list of (x,y) representing the fold line of junction outline
-    self.subjects: list of vehicles located in
+    self.id: 
+    id string
+    self.loc: 
+    (x,y) representing the center of junction
+    self.shape: 
+    list of (x,y) representing the fold line of junction outline
+    self.subjects: 
+    list of subjects located in
     '''
-    def __init__(self, id, loc, shape, subjects):
+    def __init__(self, id, loc, shape, subjects=None):
         self.id = id
         self.shape = shape
         self.loc = loc
         self.subjects = subjects
         
 def main():
+    s=subjects(sample_time=1)
+    s.initFromCSV("../testData/highDsim.csv")
     m = map()
-    m.loadfromxml("testData/Town04.net.xml")
-    m.visualize()
-    plt.show()
-
+    m.loadfromxml("../testData/highDmap.net.xml")
+    m.visualize_map()
+    m.load_vehicles(s)
+    m.visualize_scene(s, 200)
 if __name__ == "__main__":
     main()

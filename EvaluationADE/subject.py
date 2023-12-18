@@ -1,7 +1,6 @@
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
-from map import map
 from n_circle_appro import *
 class subject:
     '''
@@ -47,9 +46,9 @@ class subject:
         self.edges=edges
         self.lanes=lanes
         self.vel=vel
-        self.pos_lane=lanePos
+        self.lanePos=lanePos
         self.sample_time=sample_time
-        self.n_circle=n_circle(pos=pos,pos_lane=lanePos,width=self.width,length=self.length)
+        # self.n_circle=n_circle(heading=self., pos=pos,width=self.width,length=self.length)
     def velocity(self):
         '''
         calculate velocity
@@ -201,29 +200,30 @@ class subjects:
             
             for row in reader:
                 idSet.add(row['id'])
-                frameSet.add(int(row['frame']))
+                frameSet.add(int(float(row['frame'])))
                 rowList.append(row)
             self.beginFrame=min(frameSet)
             self.frameNum=len(frameSet)
             self.subjectNum=len(idSet)
             for id in idSet:
                 self.subjects[id]=subject(id=id,sample_time=self.sample_time)
-                self.subjects[id].pos=np.zeros((len(frameSet),2))
-                self.subjects[id].valid=np.zeros(len(frameSet),dtype=bool)
-                self.subjects[id].heading=np.zeros(len(frameSet))
-                self.subjects[id].lanePos=np.zeros((len(frameSet),2))
-                self.subjects[id].edges=np.empty(len(frameSet),dtype=np.str_)
-                self.subjects[id].lanes=np.empty(len(frameSet),dtype=np.str_)
+                self.subjects[id].pos=np.zeros((self.frameNum,2))
+                self.subjects[id].valid=np.zeros(self.frameNum,dtype=bool)
+                self.subjects[id].heading=np.zeros(self.frameNum)
+                self.subjects[id].lanePos=np.zeros((self.frameNum,2))
+                self.subjects[id].edges=np.empty(self.frameNum,dtype=object)
+                self.subjects[id].lanes=np.empty(self.frameNum,dtype=object)
+                self.subjects[id].ttcs=-1*np.ones(self.frameNum)
                 if self.hasVelocity:
-                    self.subjects[id].vel=np.zeros((len(frameSet),2))
+                    self.subjects[id].vel=np.zeros((self.frameNum,2))
                 if self.hasAcceleration:
-                    self.subjects[id].acc=np.zeros((len(frameSet),2))
+                    self.subjects[id].acc=np.zeros((self.frameNum,2))
         for row in rowList:
             if self.subjects[row['id']].length is None:
                 self.subjects[row['id']].length=row['Length']
             if self.subjects[row['id']].width is None:
                 self.subjects[row['id']].width=row['Width']
-            frame=int(row['frame'])-self.beginFrame
+            frame=int(float(row['frame']))-self.beginFrame
             self.subjects[row['id']].pos[frame]=np.array([float(row['Pos'].strip('()').split(',')[0]),float(row['Pos'].strip('()').split(',')[1])])
             self.subjects[row['id']].valid[frame]=True
             self.subjects[row['id']].heading[frame]=float(row['Angle'])
