@@ -71,7 +71,15 @@ class subject:
         self.acc=np.zeros((len(self.vel),2))
         self.acc[self.valid]=valid_acc
         return self.acc
-        
+    def deceleration(self):
+        '''
+        calculate deceleration
+        :return: list of deceleration
+        '''
+        self.dec=np.zeros((len(self.vel),2))
+        self.dec[self.valid]=self.acc[self.valid]
+        self.dec[np.dot(self.acc,self.vel.T)>0]=0
+        return self.dec
 
     def acceleration_rate(self):
         '''
