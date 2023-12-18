@@ -56,7 +56,7 @@ class subject:
         '''
         valid_pos=self.pos[self.valid]
         valid_vel=(valid_pos[1:]-valid_pos[:-1])/self.sample_time
-        valid_vel=np.concatenate((np.zeros((1,2)),valid_vel),axis=0)
+        valid_vel=np.concatenate((np.full((1,2),np.nan),valid_vel),axis=0)
         self.vel=np.zeros((len(self.pos),2))
         self.vel[self.valid]=valid_vel
         return self.vel
@@ -67,7 +67,7 @@ class subject:
         '''
         valid_vel=self.vel[self.valid]
         valid_acc=(valid_vel[1:]-valid_vel[:-1])/self.sample_time
-        valid_acc=np.concatenate((np.zeros((1,2)),valid_acc),axis=0)
+        valid_acc=np.concatenate((np.full((1,2),np.nan),valid_acc),axis=0)
         self.acc=np.zeros((len(self.vel),2))
         self.acc[self.valid]=valid_acc
         return self.acc
@@ -88,7 +88,7 @@ class subject:
         '''
         valid_acc=self.acc[self.valid]
         valid_acc_rate=(valid_acc[1:]-valid_acc[:-1])/self.sample_time
-        valid_acc_rate=np.concatenate((np.zeros((1,2)),valid_acc_rate),axis=0)
+        valid_acc_rate=np.concatenate((np.full((1,2),np.nan),valid_acc_rate),axis=0)
         self.acc_rate=np.zeros((len(self.vel),2))
         self.acc_rate[self.valid]=valid_acc_rate
         return self.acc_rate
