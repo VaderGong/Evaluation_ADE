@@ -42,10 +42,3 @@ def TTC(    pos_lane_target:float,  pos_lane_follow:float,
             else min(ettc1, ettc2)
     else:
         raise Exception('TTC type error, should be TTC, MTTC or ETTC')
-    
-
-        
-
-    
-
-        
