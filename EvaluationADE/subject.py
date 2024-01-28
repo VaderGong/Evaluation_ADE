@@ -29,8 +29,22 @@ class subject:
     self.lanes: list of lanes located in
     self.lanePos: list of (x,y) relative to the lane located in
     self.mileage: float of mileage
+
+    self.ttc: list of TTC
     '''
-    def __init__(self,id,type=None,length=None,width=None,valid=None,pos=None,heading=None,edges=None,lanes=None,vel=None,lanePos=None,sample_time=0.1) -> None:
+    def __init__(self,framelen,id,
+                 type=None,
+                 length=None,
+                 width=None,
+                 valid=None,
+                 pos=None,
+                 heading=None,
+                 edges=None,
+                 lanes=None,
+                 vel=None,
+                 lanePos=None,
+                 ttc=None,
+                 sample_time=0.1) -> None:
         # self.id=None
         # self.pos=np.array([[0,0],[1,0],[1,1],[2,1]])
         # self.vel=np.array([[0,0],[10,0],[0,10],[10,0]])
@@ -48,6 +62,8 @@ class subject:
         self.vel=vel
         self.lanePos=lanePos
         self.sample_time=sample_time
+        if ttc is None:
+            self.ttc=np.zeros(framelen)
         # self.n_circle=n_circle(heading=self., pos=pos,width=self.width,length=self.length)
     def velocity(self):
         '''
@@ -214,14 +230,13 @@ class subjects:
             self.frameNum=len(frameSet)
             self.subjectNum=len(idSet)
             for id in idSet:
-                self.subjects[id]=subject(id=id,sample_time=self.sample_time)
+                self.subjects[id]=subject(framelen=self.frameNum, id=id, sample_time=self.sample_time)
                 self.subjects[id].pos=np.zeros((self.frameNum,2))
                 self.subjects[id].valid=np.zeros(self.frameNum,dtype=bool)
                 self.subjects[id].heading=np.zeros(self.frameNum)
                 self.subjects[id].lanePos=np.zeros((self.frameNum,2))
                 self.subjects[id].edges=np.empty(self.frameNum,dtype=object)
                 self.subjects[id].lanes=np.empty(self.frameNum,dtype=object)
-                self.subjects[id].ttcs=-1*np.ones(self.frameNum)
                 if self.hasVelocity:
                     self.subjects[id].vel=np.zeros((self.frameNum,2))
                 if self.hasAcceleration:

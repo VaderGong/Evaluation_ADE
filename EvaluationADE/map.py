@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from subject import subjects
 from tqdm import tqdm
 from matplotlib.transforms import ScaledTranslation
+from TTC import TTC
+
 #map--------------------------------------------------------------------------------------------
 class map:
     def __init__(self):
@@ -177,6 +179,22 @@ class lane:
             subjects_now = subjects_next
         return num/len(self.subjects)  #此处除以帧数，实际应考虑帧时间，即return/帧时间
     
+    def calculate_TTC(self):
+        '''
+        calculate TTC
+        :return: list of TTC
+        '''
+        for i in range(len(self.subjects)):
+            for j in range(len(self.subjects[i])-1):
+                target = self.subjects[i][j+1]
+                follow = self.subjects[i][j]
+                target_pos = target.lanePos[i][0]
+                follow_pos = follow.lanePos[i][0]
+                target_vel = np.linalg.norm(target.vel[i])
+                follow_vel = np.linalg.norm(follow.vel[i])
+                ttc = TTC(pos_lane_target=target_pos, pos_lane_follow=follow_pos, v_target=target_vel, v_follow=follow_vel, type='ttc')
+                follow.ttc[i] = ttc
+    
 #edge--------------------------------------------------------------------------------------------
 class edge:
     '''
@@ -300,6 +318,14 @@ class edge:
             plt.pause(0.1)
             for sub_ in sub:
                 sub_.remove()
+
+    def calculate_TTC(self):
+        '''
+        calculate TTC
+        :return: list of TTC
+        '''
+        for lane in self.lanes.values():
+            lane.calculate_TTC()
 #junction--------------------------------------------------------------------------------------------
 class junction:
     '''
@@ -319,12 +345,51 @@ class junction:
         self.subjects = subjects
         
 def main():
+
     s=subjects(sample_time=1)
-    s.initFromCSV("../testData/highDsim.csv")
+    s.initFromCSV("../testData/processed_tracks2.csv")
     m = map()
     m.loadfromxml("../testData/highDmap.net.xml")
-    m.visualize_map()
     m.load_vehicles(s)
-    m.visualize_scene(s, 200)
+
+    # m.visualize_scene(s, 500)
+    #draw ttc distribution
+    for edge in m.edges.values():
+        edge.calculate_TTC()
+    ttc_list=[]
+    for edge in tqdm(m.edges.values()):
+        for lane in edge.lanes.values():
+            for time_id in range(len(lane.subjects)):
+                for subject in lane.subjects[time_id]:
+                        ttc_list.append(subject.ttc[time_id])
+                print(len(ttc_list))
+    ttc_list = [i for i in ttc_list if i != None and i > 0 and i <100]
+    print(ttc_list)
+    plt.hist(ttc_list, bins=100, width = (max(ttc_list)-min(ttc_list))/100)
+    plt.xlabel('TTC')
+    plt.ylabel('number')
+    plt.title('TTC distribution')
+    plt.show()
+    '''
+    #draw ttc distribution
+    for edge in m.edges.values():
+        edge.calculate_TTC()
+    ttc_list=[]
+    for edge in tqdm(m.edges.values()):
+        for lane in edge.lanes.values():
+            for time_id in range(len(lane.subjects)):
+                for subject in lane.subjects[time_id]:
+                        ttc_list.append(subject.ttc[time_id])
+                print(len(ttc_list))
+    ttc_list = [i for i in ttc_list if i != None and i > 0 and i <1000]
+    print(ttc_list)
+    plt.hist(ttc_list, bins=100, width = (max(ttc_list)-min(ttc_list))/100)
+    plt.xlabel('TTC')
+    plt.ylabel('number')
+    plt.title('TTC distribution')
+    plt.show()
+
+    '''
+    
 if __name__ == "__main__":
     main()

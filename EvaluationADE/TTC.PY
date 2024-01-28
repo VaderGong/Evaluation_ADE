@@ -1,4 +1,3 @@
-from map import map, edge, lane, junction
 from enum import Enum
 from subject import subject
 
@@ -7,6 +6,8 @@ def TTC(    pos_lane_target:float,  pos_lane_follow:float,
             a_target:float=None,    a_follow:float=None, 
             type:str='ttc'                                  ):
     '''
+    :param pos_lane_target: position of front vehicle
+    :param pos_lane_follow: position of following vehicle
     :param v_target: speed of front vehicle
     :param v_follow: speed of following vehicle
     :param a_target: acceleration of front vehicle, can ba None if TTCtype is TTC, MTTC
@@ -16,9 +17,9 @@ def TTC(    pos_lane_target:float,  pos_lane_follow:float,
     #TTC
     if type == 'ttc':
         return None if v_follow-v_target <= 0 \
-        else abs(pos_lane_follow - pos_lane_target) / (v_follow - v_target) 
+                    else abs(pos_lane_follow - pos_lane_target) / (v_follow - v_target)
     
-    #MTTC,take  into consideration
+    #MTTC,take acceleration into consideration
     elif type == 'mttc':
         delta_v = v_follow-v_target
         d = abs(pos_lane_follow - pos_lane_target)
@@ -42,3 +43,4 @@ def TTC(    pos_lane_target:float,  pos_lane_follow:float,
             else min(ettc1, ettc2)
     else:
         raise Exception('TTC type error, should be TTC, MTTC or ETTC')
+    
