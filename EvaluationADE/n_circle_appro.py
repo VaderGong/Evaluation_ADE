@@ -10,13 +10,17 @@ class n_circle:
     '''
     def __init__(self, heading, pos:list, width:float, length:float):
         '''
+        :param heading: heading of lane
         :param pos: (x,y) of center
-        :param pos_lane: (x,y) of center relative to the lane
         :param width: width of lane
         :param length: length of lane
         '''
         self.r = width/2
         self.n, self.centers=self.c(heading, pos, length, self.r)
+        self.heading = heading
+        self.pos = pos
+        self.width = width
+        self.length = length
 
     def c(self, heading, pos, length, r)->list:
         '''
