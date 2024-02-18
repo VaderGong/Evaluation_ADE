@@ -4,9 +4,9 @@ import numpy as np
 
 from enum import Enum
 
-class crash_type(Enum):
+class collision_type(Enum):
     '''
-    crash type
+    collision type
     '''
     head_on = 1
     rear_end = 2
@@ -25,11 +25,12 @@ def normalize_angle(angle):
     angle = (angle + np.pi) % (2*np.pi) - np.pi
     return angle
   
-def crash_detect(n_circle1:n_circle, n_circle2:n_circle)->bool:
+def collision_detect(n_circle1:n_circle, 
+                 n_circle2:n_circle)->bool:
     '''
     :param n_circle1: n_circle
     :param n_circle2: n_circle
-    :return: True if crash, False if not
+    :return: True if collision, False if not
     '''
     for center1 in n_circle1.centers:
         for center2 in n_circle2.centers:
@@ -37,7 +38,14 @@ def crash_detect(n_circle1:n_circle, n_circle2:n_circle)->bool:
                 return True
     return False
 
-def crash_type_detect(heading1, pos1, width1, length1, heading2, pos2, width2, length2):
+def collision_type_detect(heading1, 
+                      pos1, 
+                      width1, 
+                      length1, 
+                      heading2, 
+                      pos2, 
+                      width2, 
+                      length2):
     '''
     :param heading1: heading of vehicle 1
     :param pos1: (x,y) of center of vehicle 1
@@ -47,7 +55,7 @@ def crash_type_detect(heading1, pos1, width1, length1, heading2, pos2, width2, l
     :param pos2: (x,y) of center of vehicle 2
     :param width2: width of vehicle 2
     :param length2: length of vehicle 2
-    :return: crash type
+    :return: collision type
     '''
     #这里认为输入的heading是角度值
     #弧度制是
@@ -71,21 +79,25 @@ def crash_type_detect(heading1, pos1, width1, length1, heading2, pos2, width2, l
     else:
         pos_ = pos.side
     
-    crash_type_ = crash_type.angle
+    collision_type_ = collision_type.angle
 
     if pos_ == pos.back:
         if relative_heading < np.pi/6:
-            crash_type_ = crash_type.rear_end
+            collision_type_ = collision_type.rear_end
     elif pos_ == pos.front:
         if relative_heading < np.pi/6:
-            crash_type_ = crash_type.rear_end
+            collision_type_ = collision_type.rear_end
         elif relative_heading > np.pi*5/6:
-            crash_type_ = crash_type.head_on
+            collision_type_ = collision_type.head_on
     elif pos_ == pos.side:
         if relative_heading < np.pi/6:
-            crash_type_ = crash_type.side_swipe
+            collision_type_ = collision_type.side_swipe
     
-    return crash_type_
+    return collision_type_
+
+def collision_relative_speed(v1,
+                             v2):
+    return np.linalg.norm(v1-v2)
 
 
         

@@ -1,10 +1,13 @@
 from enum import Enum
 from subject import subject
 
-def TTC(    pos_lane_target:float,  pos_lane_follow:float, 
-            v_target:float,         v_follow:float, 
-            a_target:float=None,    a_follow:float=None, 
-            type:str='ttc'                                  ):
+def TTC(pos_lane_target:float,  
+        pos_lane_follow:float, 
+        v_target:float,         
+        v_follow:float, 
+        a_target:float=None,    
+        a_follow:float=None, 
+        type:str='ttc'):
     '''
     :param pos_lane_target: position of front vehicle
     :param pos_lane_follow: position of following vehicle

@@ -8,22 +8,34 @@ class n_circle:
     self.centers: list of (x,y) of center
     self.centers_lane: list of (x,y) of center relative to the lane
     '''
-    def __init__(self, heading, pos:list, width:float, length:float):
+    def __init__(self, 
+                 heading, 
+                 pos:list, 
+                 width:float, 
+                 length:float):
         '''
         :param heading: heading of lane
         :param pos: (x,y) of center
         :param width: width of lane
         :param length: length of lane
         '''
-        self.r = width/2
+        self.r = 1.1 * width / 2
         self.n, self.centers=self.c(heading, pos, length, self.r)
         self.heading = heading
         self.pos = pos
         self.width = width
         self.length = length
 
-    def c(self, heading, pos, length, r)->list:
+    def c(self, 
+          heading, 
+          pos, 
+          length, 
+          r)->list:
         '''
+        :param heading: heading of lane
+        :param pos: (x,y) of center
+        :param length: length of lane
+        :param r: radius of circle
         :return: list of (x,y)
         '''
         n = int(math.ceil(length/(2*r)))
@@ -45,8 +57,8 @@ def main():
     print(test.r)
     fig, ax = plt.subplots()
 
-    plt.xlim(-15,15)
-    plt.ylim(-15,15)
+    plt.xlim(-15, 15)
+    plt.ylim(-15, 15)
     for center in test.centers:
         circle = plt.Circle(center, test.r, color='r', fill=False)
         ax.add_artist(circle)
